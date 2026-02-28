@@ -10,6 +10,7 @@ from httpx import Response
 from tabulate import tabulate
 
 type CurrencyData = dict[str, list[float]]
+type CurrencyMean = dict[str, float]
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ def main() -> None:
     ecb_rates, historical_ecb_rates = fetch_rates()
 
     historical_data: CurrencyData = extract_zip(historical_ecb_rates)
-    historical_mean: CurrencyData = calculate_mean(historical_data)
+    historical_mean: CurrencyMean = calculate_mean(historical_data)
 
     currency_codes = list(historical_mean.keys())
     extracted_rates: CurrencyData = extract_zip(ecb_rates)
@@ -72,25 +73,23 @@ def extract_zip(response: Response) -> CurrencyData:
     return currencies
 
 
-def calculate_mean(data: CurrencyData) -> CurrencyData:
+def calculate_mean(data: CurrencyData) -> CurrencyMean:
     logger.info("Calculating historical means...")
 
-    rates: CurrencyData = {}
+    rates: CurrencyMean = {}
     for key in data.keys():
-        rates[key] = []
         total: float = sum(data[key])
-        mean: float = round(total / len(data[key]), 4)
-        rates[key].append(mean)
+        rates[key] = round(total / len(data[key]), 4)
     return rates
 
 
-def create_html(currency_codes: list[str], rates: CurrencyData, mean: CurrencyData) -> None:
+def create_html(currency_codes: list[str], rates: CurrencyData, mean: CurrencyMean) -> None:
     headers: list[str] = ['Currency Code', 'Rate', 'Mean Historical Rate']
     table_data: list[list[str | float]] = []
 
     for currency in currency_codes:
         current_rate: float = rates[currency][0]
-        historical_mean: float = mean[currency][0]
+        historical_mean: float = mean[currency]
 
         row: list[str | float] = [currency.upper(), current_rate, historical_mean]
         table_data.append(row)
